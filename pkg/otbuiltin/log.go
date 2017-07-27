@@ -6,7 +6,7 @@ import (
 	"time"
 	"unsafe"
 
-	glib "github.com/ostreedev/ostree-go/pkg/glibobject"
+	glib "github.com/sjoerdsimons/ostree-go/pkg/glibobject"
 )
 
 // #cgo pkg-config: ostree-1

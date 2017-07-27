@@ -2,7 +2,7 @@ package otbuiltin
 
 import (
 	"errors"
-	glib "github.com/ostreedev/ostree-go/pkg/glibobject"
+	glib "github.com/sjoerdsimons/ostree-go/pkg/glibobject"
 	"os"
 	"path"
 	"runtime"
