@@ -85,7 +85,8 @@ func TestSysrootDeployment(t *testing.T) {
 		t.Fatalf("%s", err)
 	}
 
-	err = repo.RemoteAdd("origin", "https://example.com", nil, nil)
+	ropts := RemoteOptions{}
+	err = repo.RemoteAdd("origin", "https://example.com", ropts, nil)
 	if err != nil {
 		t.Fatalf("%s", err)
 	}
