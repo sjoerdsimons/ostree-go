@@ -122,7 +122,7 @@ func (s *Sysroot) Repo(cancellable *glib.GCancellable) (*Repo, error) {
 	if !gobool(r) {
 		return nil, generateError(cerr)
 	}
-	return repoFromNative(repo), nil
+	return wrapRepo(repo), nil
 }
 
 func (s *Sysroot) OriginNewFromRefspec(refspec string) *glib.GKeyFile {

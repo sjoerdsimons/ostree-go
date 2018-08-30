@@ -19,8 +19,7 @@ import (
 import "C"
 
 type Repo struct {
-	//*glib.GObject
-	ptr unsafe.Pointer
+	*glib.Object
 }
 
 func cCancellable(c *glib.GCancellable) *C.GCancellable {
@@ -29,24 +28,26 @@ func cCancellable(c *glib.GCancellable) *C.GCancellable {
 
 // Converts an ostree repo struct to its C equivalent
 func (r *Repo) native() *C.OstreeRepo {
-	//return (*C.OstreeRepo)(r.Ptr())
-	return (*C.OstreeRepo)(r.ptr)
+	if r == nil || r.GObject == nil {
+		return nil
+	}
+	return (*C.OstreeRepo)(unsafe.Pointer(r.GObject))
 }
 
 // Takes a C ostree repo and converts it to a Go struct
-func repoFromNative(p *C.OstreeRepo) *Repo {
-	if p == nil {
-		return nil
-	}
-	//o := (*glib.GObject)(unsafe.Pointer(p))
-	//r := &Repo{o}
-	r := &Repo{unsafe.Pointer(p)}
-	return r
+func wrapRepo(p *C.OstreeRepo) *Repo {
+	g := glib.ToGObject(unsafe.Pointer(p))
+	obj := &glib.Object{g}
+	repo := &Repo{obj}
+
+	runtime.SetFinalizer(repo, (*Repo).Unref)
+
+	return repo
 }
 
 // Checks if the repo has been initialized
 func (r *Repo) isInitialized() bool {
-	if r.ptr != nil {
+	if r.GObject != nil {
 		return true
 	}
 	return false
@@ -77,7 +78,7 @@ func OpenRepo(path string) (*Repo, error) {
 	pathc := C.g_file_new_for_path(cpath)
 	defer C.g_object_unref(C.gpointer(pathc))
 	crepo := C.ostree_repo_new(pathc)
-	repo := repoFromNative(crepo)
+	repo := wrapRepo(crepo)
 	r := glib.GoBool(glib.GBoolean(C.ostree_repo_open(crepo, nil, &cerr)))
 	if !r {
 		return nil, generateError(cerr)
