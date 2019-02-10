@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 	"unsafe"
@@ -47,6 +48,8 @@ type commitOptions struct {
 	Timestamp                 time.Time // Override the timestamp of the commit
 	Orphan                    bool      // Commit does not belong to a branch
 	Fsync                     bool      // Specify whether fsync should be used or not.  Default to true
+	CollectionID              string    // Collection ID binding
+	RefBinding                []string  // Refs binding,each element is a branch name
 }
 
 // Initializes a commitOptions struct and sets default values
@@ -206,6 +209,8 @@ func (repo *Repo) Commit(commitPath, branch string, opts commitOptions) (string,
 		err = errors.New("A branch must be specified or use commitOptions.Orphan")
 		goto out
 	}
+
+	metadata = addRefs(metadata, options.CollectionID, options.RefBinding)
 
 	if options.NoXattrs {
 		C._ostree_repo_append_modifier_flags(&flags, C.OSTREE_REPO_COMMIT_MODIFIER_FLAGS_SKIP_XATTRS)
@@ -405,6 +410,60 @@ out:
 		return "", err
 	}
 	return "", generateError(cerr)
+}
+
+// Return the pointer to metadata
+// Metadata is recreated only if need to add Collection ID or refBindings.
+func addRefs(metadata *C.GVariant, collectionStr string, refStr []string) *C.GVariant {
+	builder := C.g_variant_builder_new(C._g_variant_type(C.CString("a{sv}")))
+	defer C.g_variant_builder_unref(builder)
+
+	if strings.Compare(collectionStr, "") == 0 && len(refStr) == 0 {
+		// Do not need to recreate metadata
+		goto out
+	}
+	// Add Ref bindings
+	if len(refStr) != 0 {
+		sort.Strings(refStr)
+		refs := C.g_ptr_array_new()
+		defer C.g_ptr_array_unref(refs)
+		for _, ref := range refStr {
+			refc := C.CString(ref)
+			C.g_ptr_array_add(refs, (C.gpointer)(refc))
+		}
+		refs_v := C.g_variant_new_strv(
+			(**C.gchar)(unsafe.Pointer(refs.pdata)),
+			C.gssize(len(refStr)))
+		C._g_variant_builder_add_twoargs(builder, C.CString("{s@v}"),
+			C.CString(C.OSTREE_COMMIT_META_KEY_REF_BINDING),
+			C.g_variant_new_variant(refs_v))
+	}
+
+	// Add Collection ID binding
+	if strings.Compare(collectionStr, "") != 0 {
+		collection_id := C.g_variant_new_string((*C.gchar)(C.CString(collectionStr)))
+		C._g_variant_builder_add_twoargs(builder, C.CString("{sv}"),
+			C.CString(C.OSTREE_COMMIT_META_KEY_COLLECTION_BINDING),
+			collection_id)
+	}
+
+	// Add previous metadata pairs
+	if unsafe.Pointer(metadata) != nil {
+		var iter C.GVariantIter
+		var key *C.gchar
+		var value *C.GVariant
+		C.g_variant_iter_init(&iter, metadata)
+		for C._g_variant_iter_next_twoargs(&iter, (*C.gchar)(C.CString("{sv}")), &key, &value) == C.TRUE {
+			C._g_variant_builder_add_twoargs(builder,
+				C.CString("{sv}"), (*C.char)(key), value)
+		}
+		C.g_variant_unref(metadata)
+	}
+	metadata = C.g_variant_builder_end(builder)
+	metadata = C.g_variant_ref_sink(metadata)
+
+out:
+	return metadata
 }
 
 // Parse an array of key value pairs of the format KEY=VALUE and add them to a GVariant
