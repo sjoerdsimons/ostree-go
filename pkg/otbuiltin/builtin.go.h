@@ -188,4 +188,12 @@ _ostree_repo_commit_modifier_new_wrapper (OstreeRepoCommitModifierFlags  flags,
   return ostree_repo_commit_modifier_new(flags, _commit_filter, user_data, destroy_notify);
 }
 
+// Wrapper for variadic variables
+static gboolean _g_variant_iter_next_twoargs(GVariantIter *iter,
+                     const gchar *format_string,
+					 gchar **key,
+					 GVariant **value)
+{
+	return	g_variant_iter_next(iter, format_string, key, value);
+}
 #endif
