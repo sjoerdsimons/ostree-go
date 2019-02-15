@@ -28,6 +28,7 @@ type RemoteOptions struct {
 	TlsCaPath           string
 	UnconfiguredState   string
 	MinFreeSpacePercent string
+	CollectionId        string
 }
 
 func toDashString(in string) string {
