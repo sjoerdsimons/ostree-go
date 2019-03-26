@@ -46,7 +46,11 @@ _guint_to_pointer (guint u)
 }
 
 static void
+#if GLIB_CHECK_VERSION(2,57,2)
+_g_clear_object (GObject **object_ptr)
+#else
 _g_clear_object (volatile GObject **object_ptr)
+#endif
 {
   g_clear_object(object_ptr);
 }
