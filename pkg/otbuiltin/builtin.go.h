@@ -46,7 +46,7 @@ _guint_to_pointer (guint u)
 }
 
 static void
-_g_clear_object (volatile GObject **object_ptr)
+_g_clear_object (GObject **object_ptr)
 {
   g_clear_object(object_ptr);
 }
