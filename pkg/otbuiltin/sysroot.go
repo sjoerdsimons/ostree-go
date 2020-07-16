@@ -64,7 +64,7 @@ func (s Sysroot) InitializeFS() error {
 		{"root", 0700},
 	}
 
-	if _, err := os.Stat(path.Join(s.path, "ostree")); err == nil {
+	if _, err := os.Lstat(path.Join(s.path, "ostree")); err == nil {
 		return errors.New("Filesystem already initialized for ostree")
 	}
 
